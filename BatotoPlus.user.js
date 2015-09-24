@@ -9,6 +9,7 @@
 // @include        http://www.bato.to/read/*
 // @include        http://bato.to/read/*
 // @include        http://bato.to
+// @downloadURL    https://github.com/JustJustin/BatotoPlus/raw/master/BatotoPlus.user.js
 // @run-at         document-end
 
 // ==/UserScript==
