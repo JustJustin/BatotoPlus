@@ -1,10 +1,11 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.0
+// @version        1.2a
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
+// @include        http://bato.to/reader*
 // @include        http://www.batoto.net/read/*
 // @include        http://www.bato.to/read/*
 // @include        http://bato.to/read/*
@@ -145,9 +146,20 @@ function prev(){
 	window.history.back();
 }
 
+var keyTimeout = null;
 var scrollInterval = null;
 var myKeyHandler = function(e){
 	if(e.target.nodeName == 'INPUT') return;
+
+    if (keyTimeout !== null) clearTimeout(keyTimeout);
+    keyTimeout = setTimeout(function() {
+        if (scrollInterval !== null) {
+            clearInterval(scrollInterval); 
+            scrollInterval = null
+        } 
+        keyTimout=null;
+    }, 500);
+    
 	switch(e.keyCode){
 		case keycode.a:
 			prev();
@@ -223,8 +235,12 @@ function getch(name) {
     else {return null;}
 }
 
-if (/\/read\//.exec(window.location.pathname)) {
-    // If on a read page, ie manage page.
+function reader_page(mutations, instance) {
+    if ($js("#reader>.suggested_title")) {
+        return;
+    }
+    
+    // If on a read page, ie manga page.
     // Handle scroll events
     document.body.addEventListener('keydown', myKeyHandler);
     document.body.addEventListener("keyup", myKeyUp);
@@ -237,8 +253,8 @@ if (/\/read\//.exec(window.location.pathname)) {
     }
     /* Move comic image up */
     $js.extend( $js("#comic_page").parentNode.parentNode.style,
-                  { top: "0px", marginBottom: "0px", right: "0px" }
-                );
+                { top: "0px", marginBottom: "0px", right: "0px" }
+              );
     var title = $js("#content div.moderation_bar > ul > li:first-child a").innerHTML;
     title = title.replace(/ /g, "-");
     
@@ -256,12 +272,19 @@ if (/\/read\//.exec(window.location.pathname)) {
     console.log("Recommended name is " + name);
     
     var $bot = $$js("div.moderation_bar")[1];
-    var $el = $js.el("div", {innerHTML: name});
+    var $el = $js.el("div", {class: "suggested_title", innerHTML: name});
     $el.style.textAlign = "center";
     $js.after($bot, $el);
+}
+
+if (/\/reader/.exec(window.location.pathname)) {
+    console.log("Reader Page");
+    var $reader = $js("#reader");
+    var observer = new MutationObserver( reader_page );
+    observer.observe($reader, {childList: true, attributes: false, characterData: false});
+
 } else {
     // Not read page, front page?
-    
     if ($js("#index_stats")) {
         /* These move the watched manga tab above the notices div */
         $js.prepend($js("#index_stats"), $js("#hook_watched_items"));
