@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2
+// @version        1.2.1
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -338,12 +338,30 @@ if (/\/reader/.exec(window.location.pathname)) {
         markchstatus();
     }
 
+    if ($js("#hook_watched_items")) {
+        // My follows list
+        var entries = $$js("#hook_watched_items div.recent_activity li");
+        for (var i = 0; i < entries.length; ++i) {
+            var entry = entries[i];
+            var a = $js("a>img", entry);
+            if (!a) {continue;}
+            a = a.parentNode;
+            var chhash = gethash(a.href);
+            if (chreadstatus(chhash)) {
+                // visited
+                entry.children[0].style["background-color"] = "lightgreen";
+            }
+        }
+    }
+    
     // Not read page, front page?
     if ($js("#index_stats")) {
         /* These move the watched manga tab above the notices div */
         $js.prepend($js("#index_stats"), $js("#hook_watched_items"));
         /* This remove a stupid seperator image */
-        $js.remove($js(".category_block>img"));
+        if ($js(".category_block>img")) {
+            $js.remove($js(".category_block>img"));
+        }
     }
 
     /* Allow watched to apear bigger */
