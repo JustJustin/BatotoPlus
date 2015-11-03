@@ -145,6 +145,53 @@ function prev(){
 	window.history.back();
 }
 
+/* The following is a list of the functions used to track ch read status */
+chreadkey = "chStatus";
+// Get url hash, useful for getting hashid from chapter links
+function gethash (url) {
+    if (url.lastIndexOf("#") == -1) {
+        return false;
+    }
+    return url.substr(url.lastIndexOf("#"));
+}
+// Returns if the chapter from the passed hashid has been visited.
+function chreadstatus(hash) {
+    if (chreadkey != window.localStorage.key(chreadkey)) {
+        return false;
+    }
+    if (window.localStorage[chreadkey][hash]) {
+        return window.localStorage[chreadkey][hash];
+    }
+    return false;
+}
+function savechhash() {
+    // assumed to be on a reader page
+    var hashid = window.location.hash;
+    if (chreadkey != window.localStorage.key(chreadkey)) {
+        window.localStorage[chreadkey] = {};
+    }
+    window.localStorage[chreadkey][hashid] = 1;
+}
+function markchstatus() {
+    // Assumed to be on my follows page
+    var entries = document.querySelectorAll("table.chapters_list>tbody>tr");
+    if (entries) {
+        // pop off header
+        entries = Array.slice(entries, 1);
+        for (var i = 0; i < entries.length; ++i) {
+            var entry = entries[i];
+            var ch = entry.children[1].children[1];
+            var chhash = gethash(ch.href);
+            if (chreadstatus(chhash)) {
+                // mark green
+                entry.children[0].style["background-color"] = "green";
+            } else {
+                // Do nothing for now
+            }
+        }
+    }
+}
+
 var scrollInterval = null;
 var myKeyHandler = function(e){
 	if(e.target.nodeName == 'INPUT') return;
@@ -224,10 +271,12 @@ function getch(name) {
 }
 
 if (/\/read\//.exec(window.location.pathname)) {
-    // If on a read page, ie manage page.
+    // If on a read page, ie manga page.
     // Handle scroll events
     document.body.addEventListener('keydown', myKeyHandler);
     document.body.addEventListener("keyup", myKeyUp);
+    
+    savechhash();
 
     repositionLargeImages();
     
@@ -260,6 +309,12 @@ if (/\/read\//.exec(window.location.pathname)) {
     $el.style.textAlign = "center";
     $js.after($bot, $el);
 } else {
+    if (/\/myfollows/.exec(window.location.pathname)) {
+        // my follows page
+        console.log("Follows page");
+        markchstatus();
+    }
+
     // Not read page, front page?
     
     if ($js("#index_stats")) {
