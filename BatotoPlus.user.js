@@ -1,15 +1,14 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2a
+// @version        1.2
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
-// @include        http://bato.to/reader*
-// @include        http://www.batoto.net/read/*
-// @include        http://www.bato.to/read/*
-// @include        http://bato.to/read/*
 // @include        http://bato.to
+// @include        https://bato.to
+// @include        http://bato.to/*
+// @include        https://bato.to/*
 // @downloadURL    https://github.com/JustJustin/BatotoPlus/raw/master/BatotoPlus.user.js
 // @run-at         document-end
 
@@ -148,6 +147,10 @@ function prev(){
 
 /* The following is a list of the functions used to track ch read status */
 chreadkey = "chStatus";
+if (!(chreadkey in window.localStorage)) {
+    window.localStorage[chreadkey] = JSON.stringify({});
+}
+chreaddb = JSON.parse(window.localStorage[chreadkey]);
 // Get url hash, useful for getting hashid from chapter links
 function gethash (url) {
     if (url.lastIndexOf("#") == -1) {
@@ -157,21 +160,17 @@ function gethash (url) {
 }
 // Returns if the chapter from the passed hashid has been visited.
 function chreadstatus(hash) {
-    if (chreadkey != window.localStorage.key(chreadkey)) {
-        return false;
-    }
-    if (window.localStorage[chreadkey][hash]) {
-        return window.localStorage[chreadkey][hash];
+    if (chreaddb[hash]) {
+        return chreaddb[hash];
     }
     return false;
 }
 function savechhash() {
     // assumed to be on a reader page
     var hashid = window.location.hash;
-    if (chreadkey != window.localStorage.key(chreadkey)) {
-        window.localStorage[chreadkey] = {};
-    }
-    window.localStorage[chreadkey][hashid] = 1;
+    console.log("Saving chapter status " + hashid);
+    chreaddb[hashid] = 1;
+    window.localStorage[chreadkey] = JSON.stringify(chreaddb);
 }
 function markchstatus() {
     // Assumed to be on my follows page
