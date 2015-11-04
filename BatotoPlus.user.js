@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.2
+// @version        1.2.3
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -171,6 +171,9 @@ function chreadstatus(hash) {
 function savechhash() {
     // assumed to be on a reader page
     var hashid = window.location.hash;
+    if (/_[0-9]{1,4}$/.exec(hashid)) {
+        hashid = window.location.hash.substr(0, /_[0-9]{1,4}$/.exec(hashid).index);
+    }
     console.log("Saving chapter status " + hashid);
     chreaddb[hashid] = 1;
     window.localStorage[chreadkey] = JSON.stringify(chreaddb);
