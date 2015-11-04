@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.1
+// @version        1.2.2
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -150,7 +150,10 @@ chreadkey = "chStatus";
 if (!(chreadkey in window.localStorage)) {
     window.localStorage[chreadkey] = JSON.stringify({});
 }
-chreaddb = JSON.parse(window.localStorage[chreadkey]);
+var chreaddb = JSON.parse(window.localStorage[chreadkey]);
+function reloadreaddb() {
+    chreaddb = JSON.parse(window.localStorage[chreadkey]);
+}
 // Get url hash, useful for getting hashid from chapter links
 function gethash (url) {
     if (url.lastIndexOf("#") == -1) {
@@ -188,6 +191,21 @@ function markchstatus() {
             } else {
                 // Do nothing for now
             }
+        }
+    }
+}
+function marksidebarchstatus() {
+    // My follows list
+    var entries = $$js("#hook_watched_items div.recent_activity li");
+    for (var i = 0; i < entries.length; ++i) {
+        var entry = entries[i];
+        var a = $js("a>img", entry);
+        if (!a) {continue;}
+        a = a.parentNode;
+        var chhash = gethash(a.href);
+        if (chreadstatus(chhash)) {
+            // visited
+            entry.children[0].style["background-color"] = "lightgreen";
         }
     }
 }
@@ -336,22 +354,22 @@ if (/\/reader/.exec(window.location.pathname)) {
         // my follows page
         console.log("Follows page");
         markchstatus();
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+                reloadreaddb();
+                markchstatus();
+            }
+        });
     }
 
     if ($js("#hook_watched_items")) {
-        // My follows list
-        var entries = $$js("#hook_watched_items div.recent_activity li");
-        for (var i = 0; i < entries.length; ++i) {
-            var entry = entries[i];
-            var a = $js("a>img", entry);
-            if (!a) {continue;}
-            a = a.parentNode;
-            var chhash = gethash(a.href);
-            if (chreadstatus(chhash)) {
-                // visited
-                entry.children[0].style["background-color"] = "lightgreen";
+        marksidebarchstatus();
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+                reloadreaddb();
+                marksidebarchstatus();
             }
-        }
+        });
     }
     
     // Not read page, front page?
