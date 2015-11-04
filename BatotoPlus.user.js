@@ -168,6 +168,31 @@ function chreadstatus(hash) {
     }
     return false;
 }
+//Cleans up any _# chapter hashes
+function cleanchdb() {
+    for (var key in chreaddb) {
+        if (/_[0-9]{1,4}$/.exec(key)) {
+            var newkey = key.substr(0, /_[0-9]{1,4}$/.exec(key).index);
+            if (!(newkey in chreaddb)) {
+                chreaddb[newkey] = 1;
+            }
+            delete chreaddb[key];
+        }
+    }
+    window.localStorage[chreadkey] = JSON.stringify(chreaddb);
+}
+//Takes a JSON string and parses it as a chreaddb and merges it
+function mergechdb(chreadstring) {
+    var newchreaddb = JSON.parse(chreadstring);
+    for (var key in newchreaddb) {
+        if (!(key in chreaddb)) {
+            chreaddb[key] = 1;
+        }
+    }
+    // Clean DB (Which also saves these changes!)
+    cleanchdb();
+}
+
 function savechhash() {
     // assumed to be on a reader page
     var hashid = window.location.hash;
