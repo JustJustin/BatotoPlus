@@ -192,6 +192,11 @@ function mergechdb(chreadstring) {
     // Clean DB (Which also saves these changes!)
     cleanchdb();
 }
+if (unsafeWindow) {
+    unsafeWindow.BP = {};
+    unsafeWindow.BP.mergechdb = mergechdb;
+    unsafeWindow.BP.cleanchdb = cleanchdb;
+}
 
 function savechhash() {
     // assumed to be on a reader page
