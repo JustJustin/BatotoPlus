@@ -143,9 +143,13 @@ function next(){
         window.location = $js('#comic_page').parentNode.href;
     } else if ($js(".moderation_bar ul img[title=\"Next Chapter\"]")) {
         window.location = $js(".moderation_bar ul img[title=\"Next Chapter\"]").parentNode.href;
+    } else {
+        // There appears to be nothing here we should maybe go to the comic page? TODO
+        
     }
 }
 function prev(){
+    // TODO make smart
 	window.history.back();
 }
 
