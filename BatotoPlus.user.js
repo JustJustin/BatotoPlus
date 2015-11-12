@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.3
+// @version        1.2.4
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
