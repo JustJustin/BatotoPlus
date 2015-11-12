@@ -139,7 +139,11 @@ function charfill(ch, code, lim){
 charfill('a', 65, 26); charfill('0', 48, 10);
 
 function next(){
-	window.location = document.getElementById('comic_page').parentNode.href;
+    if ($js('#comic_page')) {
+        window.location = $js('#comic_page').parentNode.href;
+    } else if ($js(".moderation_bar ul img[title=\"Next Chapter\"]")) {
+        window.location = $js(".moderation_bar ul img[title=\"Next Chapter\"]").parentNode.href;
+    }
 }
 function prev(){
 	window.history.back();
