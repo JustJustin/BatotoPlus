@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.4
+// @version        1.2.5
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -340,6 +340,81 @@ function getch(name) {
     else {return null;}
 }
 
+function allMyFollows() {
+    // For the allMyFollows section on the myfollows page.
+    var $header = $$js("h3.maintitle")[1];
+    var $follows = $$js("div#content>div>div>a");
+    var $button = $js.el("button", {type:"button", innerHTML: "Check Status"});
+    $button.style["margin-left"] = "5px";
+    $header.appendChild($button);
+    
+    var cancelled = false;
+    var i = 0;
+    
+    var startFollows = function () {
+        console.log("Beginning to check allMyFollows Status");
+        window.alert("This is a slow process, it appears Batoto slows requests for series pages like this.\nPlease leave this tab open and wait for the process to complete.")
+        $button.onclick = function () {};
+        $button.disabled = true;
+        $button.innerHTML = "Checking...";
+        nextFollow();
+        nextFollow();
+    };
+    var nextFollow = function() {
+        if (i >= $follows.length) {
+            $button.innerHTML = "DONE";
+            return; //DONE! (Mark button)
+        }
+        var $a = $follows[i++];
+        var href = $a.href;
+        var req = new XMLHttpRequest();
+        req.open("GET", href);
+        req.el = $a.parentNode;
+        req.responseType = "document";
+        req.onload = function (e) {
+            var $dom = this.response;
+            var status = function(){
+                var $tds = $$js("tbody>tr>td:first-child", $dom);
+                for (var j = 0; j < $tds.length; ++j) {
+                    if ($tds[j].innerHTML == "Status:") {
+                        return $tds[j].parentNode.children[1].innerHTML;
+                    }
+                }
+                return "Unknown";
+            }();
+            var description = function () {
+                var $tds = $$js("tbody>tr>td:first-child", $dom);
+                for (var j = 0; j < $tds.length; ++j) {
+                    if ($tds[j].innerHTML == "Description:") {
+                        return $tds[j].parentNode.children[1].innerHTML;
+                    }
+                }
+                return "Unknown";
+            }();
+            var $parent = this.el;
+            $parent.appendChild($js.el("br"));
+            $parent.appendChild($js.el("span", {innerHTML: "Status: " + status}));
+            $parent.appendChild($js.el("br"));
+            $parent.appendChild($js.el("span", {innerHTML: "Description: " + description}));
+            $parent.appendChild($js.el("br"));
+            
+            $parent.style["display"] = "block";
+            $parent.style["background-color"] = "#eeffff";
+            $parent.style["margin-bottom"] = "7px";
+            $parent.style["padding-top"] = "6px";
+            $parent.children[0].style["font-size"] = "2em";
+            var name = $parent.children[0].innerHTML;
+            var malurl = "http://myanimelist.net/manga.php?q=" + name;
+            $parent.appendChild($js.el("span", {innerHTML:"<a href='"+malurl+"' target='_blank'>MAL Search</a>"}));
+            $parent.appendChild($js.el("br"));
+            
+            nextFollow();
+        };
+        req.send();
+    };
+    $button.onclick = startFollows;
+}
+
 function reader_page(mutations, instance) {
     if ($js("#reader>.suggested_title")) {
         return;
@@ -364,6 +439,7 @@ function reader_page(mutations, instance) {
               );
     var title = $js("#content div.moderation_bar > ul > li:first-child a").innerHTML;
     title = title.replace(/ /g, "-");
+    title = title.replace(/[\':]/g, "");
     
     var ch_select = $js("#content div.moderation_bar > ul > li:nth-child(2) select");
     var ch = ch_select.options[ch_select.selectedIndex].innerHTML;
@@ -401,6 +477,7 @@ if (/\/reader/.exec(window.location.pathname)) {
                 markchstatus();
             }
         });
+        allMyFollows();
     }
 
     if ($js("#hook_watched_items")) {
