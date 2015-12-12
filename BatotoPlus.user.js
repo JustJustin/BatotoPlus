@@ -178,6 +178,7 @@ function chreadstatus(hash) {
 }
 //Cleans up any _# chapter hashes
 function cleanchdb() {
+    reloadreaddb();
     for (var key in chreaddb) {
         if (/_[0-9]{1,4}$/.exec(key)) {
             var newkey = key.substr(0, /_[0-9]{1,4}$/.exec(key).index);
@@ -191,6 +192,7 @@ function cleanchdb() {
 }
 //Takes a JSON string and parses it as a chreaddb and merges it
 function mergechdb(chreadstring) {
+    reloadreaddb();
     var newchreaddb = JSON.parse(chreadstring);
     for (var key in newchreaddb) {
         if (!(key in chreaddb)) {
@@ -213,6 +215,7 @@ function savechhash() {
         hashid = window.location.hash.substr(0, /_[0-9]{1,4}$/.exec(hashid).index);
     }
     console.log("Saving chapter status " + hashid);
+    reloadreaddb();
     chreaddb[hashid] = 1;
     window.localStorage[chreadkey] = JSON.stringify(chreaddb);
 }
