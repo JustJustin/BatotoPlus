@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.5
+// @version        1.2.6
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -437,9 +437,11 @@ function reader_page(mutations, instance) {
         $js("#topa").remove();
     }
     /* Move comic image up */
-    $js.extend( $js("#comic_page").parentNode.parentNode.style,
-                { top: "0px", marginBottom: "0px", right: "0px" }
-              );
+    if ($js("#comic_page")) {
+        $js.extend( $js("#comic_page").parentNode.parentNode.style,
+                    { top: "0px", marginBottom: "0px", right: "0px" }
+                  );
+    }
     var title = $js("#content div.moderation_bar > ul > li:first-child a").innerHTML;
     title = title.replace(/ /g, "-");
     title = title.replace(/[\':]/g, "");
@@ -450,6 +452,44 @@ function reader_page(mutations, instance) {
     if (ch.length < 2) ch = "0"+ch;
     
     var page_select = $js("#content div.moderation_bar > ul select#page_select");
+    if (!page_select) {
+        // No pages... maybe multiple images?
+        // This is usually webcomics/4komas
+        var $bot = $$js("div.moderation_bar")[1];
+        var $el = $js.el("div", {class: "suggested_title"});
+        $el.style.textAlign = "center";
+
+        title = title + "_c"+ ch;
+
+        var imgs = $$js("#reader>div>img");
+        for (var i = 0; i < imgs.length; ++i) {
+            // create a data blob of these images
+            var type = imgs[i].src.split(".").pop();
+            var req = new XMLHttpRequest();
+            req.open("GET", "//cors-anywhere.herokuapp.com/" + imgs[i].src);
+            req.responseType = "arraybuffer";
+            req.filetype = type;
+            req.i = i;
+            req.onload = function (event) {
+                var type = this.filetype;
+                var data = new Blob([this.response], {type: "image/" +
+                                                      (type == "jpg" ? "jpeg" : type)});
+                
+                var pg = this.i+1;
+                var pg_str = (imgs.length == 1 ? "" : 
+                              (imgs.length > 9 && pg <= 9 ? "0"+pg : pg));
+                var $a = $js.el("a", {href: window.URL.createObjectURL(data),
+                                      download: title + "p" + pg_str + "." + type,
+                                      innerHTML: title + "p" + pg_str});
+                $el.appendChild($a);
+                $el.appendChild($js.el("br"));
+            };
+            req.send();
+        }
+        $js.after($bot, $el);
+        return;
+    }
+    // Pages... regular manga
     var pg = page_select.options[page_select.selectedIndex].innerHTML;
     pg = /[\d]+/.exec(pg)[0];
     if (page_select.options.length > 9 && pg.length < 2) pg = "0"+pg;
