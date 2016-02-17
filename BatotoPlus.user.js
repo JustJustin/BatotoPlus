@@ -578,6 +578,7 @@ function reader_page(mutations, instance) {
                                   innerHTML: name});
             $el.appendChild($a);
         };
+        req.send();
     } else {
         $el.innerHTML = name;
     }
