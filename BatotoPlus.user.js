@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.6
+// @version        1.2.7
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -196,16 +196,21 @@ function mergechdb(chreadstring) {
     var newchreaddb = JSON.parse(chreadstring);
     for (var key in newchreaddb) {
         if (!(key in chreaddb)) {
+            console.log("Adding key" + key);
             chreaddb[key] = 1;
         }
     }
-    // Clean DB (Which also saves these changes!)
+    // Clean DB
+    window.localStorage[chreadkey] = JSON.stringify(chreaddb);
     cleanchdb();
 }
 if (unsafeWindow) {
     unsafeWindow.BP = {};
     unsafeWindow.BP.mergechdb = mergechdb;
     unsafeWindow.BP.cleanchdb = cleanchdb;
+    unsafeWindow.BP.promptchdb = function () {
+        window.prompt("chreaddb", window.localStorage[chreadkey]);
+    };
 }
 
 function savechhash() {
@@ -477,10 +482,10 @@ function reader_page(mutations, instance) {
                 
                 var pg = this.i+1;
                 var pg_str = (imgs.length == 1 ? "" : 
-                              (imgs.length > 9 && pg <= 9 ? "0"+pg : pg));
+                              (imgs.length > 9 && pg <= 9 ? "p0"+pg : "p"+pg));
                 var $a = $js.el("a", {href: window.URL.createObjectURL(data),
-                                      download: title + "p" + pg_str + "." + type,
-                                      innerHTML: title + "p" + pg_str});
+                                      download: title + pg_str + "." + type,
+                                      innerHTML: title + pg_str});
                 $el.appendChild($a);
                 $el.appendChild($js.el("br"));
             };
