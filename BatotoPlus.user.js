@@ -153,8 +153,35 @@ function prev(){
 	window.history.back();
 }
 
-/* The following is a list of the functions used to track ch read status */
-chreadkey = "chStatus";
+/* Manga Cache
+   Caches manga info
+ */
+var mangaCacheKey = "mangaCache";
+if (!(mangaCacheKey in window.localStorage)) {
+    window.localStorage[mangaCacheKey] = JSON.stringify({});
+}
+function getMangaID (url) {
+    if (url.contains("/comics/")) {
+        var parts = url.split("/");
+        var part = "";
+        for (var i = 0; i < parts.length; ++i) {
+            part = parts[i];
+            if (part == "comics") {
+                part = parts[i+1];
+                break;
+            }
+        }
+        if (part.lastIndexOf("r") == -1) {return "";}
+        return part.substr(part.lastIndexOf("r")+1);
+    }
+    return "";
+}
+
+
+/* Chapter Read Status
+   The following is a list of the functions used to track ch read status 
+ */
+var chreadkey = "chStatus";
 if (!(chreadkey in window.localStorage)) {
     window.localStorage[chreadkey] = JSON.stringify({});
 }
@@ -349,12 +376,43 @@ function getch(name) {
 }
 
 function allMyFollows() {
+    // Settings
+    var useCacheIfCompleted = true; useCacheIfCompleted = false; // temporary
+    var useCacheForAll = false;
+
     // For the allMyFollows section on the myfollows page.
     var $header = $$js("h3.maintitle")[1];
     var $follows = $$js("div#content>div>div>a");
     var $button = $js.el("button", {type:"button", innerHTML: "Check Status"});
     $button.style["margin-left"] = "5px";
     $header.appendChild($button);
+
+    var $optionSpan = $js.el("span"); $optionSpan.style.margin = "8px";
+    var $checkBox = $js.el("input", {id:"BP_cache1", type:"checkbox", checked:useCacheIfCompleted});
+    var $label = $js.el("label", {innerHTML: "Use Cache for Completed Follows"});
+    $label.setAttribute("for", "BP_cache1");
+    $checkBox.onclick = function () {
+        useCacheIfCompleted = this.checked;
+    }
+    $checkBox.style.margin="5px";
+    $optionSpan.appendChild($checkBox);
+    $optionSpan.appendChild($label);
+
+    $checkBox.disabled = true; // temporary
+    
+    $checkBox = $js.el("input", {id:"BP_cache2", type:"checkbox", checked:useCacheForAll});
+    $label = $js.el("label", {innerHTML: "Use cache for all Follows"});
+    $label.setAttribute("for", "BP_cache2");
+    $checkBox.onclick = function() {
+        useCacheForAll = this.checked;
+    }
+    $checkBox.style.margin="5px";
+    $optionSpan.appendChild($checkBox);
+    $optionSpan.appendChild($label);
+
+    $checkBox.disabled = true; // temporary
+
+    $header.appendChild($optionSpan);
     
     var cancelled = false;
     var i = 0;
@@ -501,9 +559,29 @@ function reader_page(mutations, instance) {
     
     var name = title + "_c" + ch + "p" + pg;
     console.log("Recommended name is " + name);
+
     
     var $bot = $$js("div.moderation_bar")[1];
-    var $el = $js.el("div", {class: "suggested_title", innerHTML: name});
+    var $el = $js.el("div", {class: "suggested_title"});
+    
+    if ($js("#comic_page")) {
+        var img = $js("#comic_page");
+        var type = img.src.split(".").pop();
+        var req = new XMLHttpRequest();
+        req.open("GET", "//cors-anywhere.herokuapp.com/" + img.src);
+        req.responseType = "arraybuffer";
+        req.onload = function (event) {
+            var data = new Blob([this.response], {type: "image/" +
+                                                  (type == "jpg" ? "jpeg" : type)});
+            var $a = $js.el("a", {href:window.URL.createObjectURL(data),
+                                  download: name + "." + type,
+                                  innerHTML: name});
+            $el.appendChild($a);
+        };
+    } else {
+        $el.innerHTML = name;
+    }
+
     $el.style.textAlign = "center";
     $js.after($bot, $el);
 }
