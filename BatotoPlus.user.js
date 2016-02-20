@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.2.8
+// @version        1.3.0
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -177,6 +177,82 @@ function getMangaID (url) {
     return "";
 }
 
+function getMangaCache() {
+    return JSON.parse(window.localStorage[mangaCacheKey]);
+}
+function saveMangaInfo(id, info) {
+    if (info.id == "") {
+        info.id = id;
+    } else if(info.id != id) {
+        console.log({msg:"Error: Manga IDs do not match in saveMangaInfo.", id: id, info: info});
+        alert("Error: Trying to save manga id " + id + " with non-matching info.id " + info.id);
+        return;
+    }
+    var cache = getMangaCache();
+    cache[id] = info;
+    window.localStorage[mangaCacheKey] = JSON.stringify(cache);
+}
+function getMangaInfo(id) {
+    var cache = getMangaCache();
+    if (id in cache) {
+        return cache[id];
+    }
+    return false;
+}
+
+function parseMangaPage(doc, url=undefined) {
+    var getInfoColumn = function(infoLabel, init=undefined, clean=true) {
+        var $tds = $$js("tbody>tr>td:first-child", doc);
+        for (var j = 0; j < $tds.length; ++j) {
+            if ($tds[j].innerHTML == infoLabel) {
+                var el = $tds[j].parentNode.children[1];
+                return (clean ? el.textContent : el.innerHTML);
+            }
+        }
+        return init;
+    };
+    var info = {};
+    info.title = $js(".ipsType_pagetitle", doc).innerHTML.trim();
+
+    info.status = getInfoColumn("Status:", "Unknown");
+    info.description = getInfoColumn("Description:", "Unknown", false);    
+    info.author = getInfoColumn("Author:", "Unknown");
+    info.artist = getInfoColumn("Artist:", "Unknown");
+    info.type = getInfoColumn("Type:", "Unknown");
+    
+    var getInfoListValues = function(infoLabel, init=[]) {
+        var $tds = $$js("tbody>tr>td:first-child", doc);
+        for (var j = 0; j < $tds.length; ++j) {
+            if ($tds[j].innerHTML == infoLabel) {
+                var listContainer = $tds[j].parentNode.children[1];
+                var alts = $$js("span>img", listContainer);
+                var values = [];
+                for (var i = 0; i < alts.length; ++i) {
+                    values.push(alts[i].parentNode.textContent.trim());
+                }
+                return values;
+            }
+        }
+        return init;
+    }
+
+    info.alt_names = getInfoListValues("Alt Names:"); // handle later
+    info.genres = getInfoListValues("Genres:"); // handle later
+    if (url) {
+        info.id = getMangaID(url);
+    } else {
+        info.id = "";
+    }
+    if ($js(".ipsBox>div>div>img")) {
+        info.img_src = $js(".ipsBox>div>div>img").src;
+    } else {
+        console.log({msg:"Couldn't find manga page image.", dom:doc, info:info});
+        // some placeholder image?
+        info.img_src = "";
+    }
+    return info;
+}
+
 
 /* Chapter Read Status
    The following is a list of the functions used to track ch read status 
@@ -238,6 +314,10 @@ if (unsafeWindow) {
     unsafeWindow.BP.promptchdb = function () {
         window.prompt("chreaddb", window.localStorage[chreadkey]);
     };
+
+    // Make my jslib available, good for development.
+    unsafeWindow.$js = $js;
+    unsafeWindow.$$js = $$js;
 }
 
 function savechhash() {
@@ -377,7 +457,7 @@ function getch(name) {
 
 function allMyFollows() {
     // Settings
-    var useCacheIfCompleted = true; useCacheIfCompleted = false; // temporary
+    var useCacheIfCompleted = true;
     var useCacheForAll = false;
 
     // For the allMyFollows section on the myfollows page.
@@ -397,8 +477,6 @@ function allMyFollows() {
     $checkBox.style.margin="5px";
     $optionSpan.appendChild($checkBox);
     $optionSpan.appendChild($label);
-
-    $checkBox.disabled = true; // temporary
     
     $checkBox = $js.el("input", {id:"BP_cache2", type:"checkbox", checked:useCacheForAll});
     $label = $js.el("label", {innerHTML: "Use cache for all Follows"});
@@ -409,8 +487,6 @@ function allMyFollows() {
     $checkBox.style.margin="5px";
     $optionSpan.appendChild($checkBox);
     $optionSpan.appendChild($label);
-
-    $checkBox.disabled = true; // temporary
 
     $header.appendChild($optionSpan);
     
@@ -426,6 +502,27 @@ function allMyFollows() {
         nextFollow();
         nextFollow();
     };
+
+    var handleInfo = function(el, info) {
+        // Fills out link container with manga info.
+        var $parent = el;
+        $parent.appendChild($js.el("br"));
+        $parent.appendChild($js.el("span", {innerHTML: "Status: " + info.status}));
+        $parent.appendChild($js.el("br"));
+        $parent.appendChild($js.el("span", {innerHTML: "Description: " + info.description}));
+        $parent.appendChild($js.el("br"));
+        
+        $parent.style["display"] = "block";
+        $parent.style["background-color"] = "#eeffff";
+        $parent.style["margin-bottom"] = "7px";
+        $parent.style["padding-top"] = "6px";
+        $parent.children[0].style["font-size"] = "2em";
+        var name = $parent.children[0].innerHTML;
+        var malurl = "http://myanimelist.net/manga.php?q=" + name;
+        $parent.appendChild($js.el("span", {innerHTML:"<a href='"+malurl+"' target='_blank'>MAL Search</a>"}));
+        $parent.appendChild($js.el("br"));
+    };
+
     var nextFollow = function() {
         if (i >= $follows.length) {
             $button.innerHTML = "DONE";
@@ -433,47 +530,33 @@ function allMyFollows() {
         }
         var $a = $follows[i++];
         var href = $a.href;
+
+        if (useCacheForAll || useCacheIfCompleted) {
+            var id = getMangaID(href);
+            var info = getMangaInfo(id);
+
+            if ((useCacheForAll && info) || 
+                (useCacheIfCompleted && info && info.status == "Complete") ) {
+                console.log({msg:"Using Cached Manga Info", id:id, info:info, 
+                             settings: {useCacheIfCompleted:useCacheIfCompleted, 
+                                        useCacheForAll: useCacheForAll}
+                            });
+                handleInfo($a.parentNode, info);
+                return nextFollow();
+            }
+        }
+
         var req = new XMLHttpRequest();
         req.open("GET", href);
         req.el = $a.parentNode;
         req.responseType = "document";
         req.onload = function (e) {
             var $dom = this.response;
-            var status = function(){
-                var $tds = $$js("tbody>tr>td:first-child", $dom);
-                for (var j = 0; j < $tds.length; ++j) {
-                    if ($tds[j].innerHTML == "Status:") {
-                        return $tds[j].parentNode.children[1].innerHTML;
-                    }
-                }
-                return "Unknown";
-            }();
-            var description = function () {
-                var $tds = $$js("tbody>tr>td:first-child", $dom);
-                for (var j = 0; j < $tds.length; ++j) {
-                    if ($tds[j].innerHTML == "Description:") {
-                        return $tds[j].parentNode.children[1].innerHTML;
-                    }
-                }
-                return "Unknown";
-            }();
-            var $parent = this.el;
-            $parent.appendChild($js.el("br"));
-            $parent.appendChild($js.el("span", {innerHTML: "Status: " + status}));
-            $parent.appendChild($js.el("br"));
-            $parent.appendChild($js.el("span", {innerHTML: "Description: " + description}));
-            $parent.appendChild($js.el("br"));
+            var info = parseMangaPage($dom, this.responseURL);
+            saveMangaInfo(info.id, info);
+            console.log({msg:"Finished manga page request.", title:info.title, info:info});
             
-            $parent.style["display"] = "block";
-            $parent.style["background-color"] = "#eeffff";
-            $parent.style["margin-bottom"] = "7px";
-            $parent.style["padding-top"] = "6px";
-            $parent.children[0].style["font-size"] = "2em";
-            var name = $parent.children[0].innerHTML;
-            var malurl = "http://myanimelist.net/manga.php?q=" + name;
-            $parent.appendChild($js.el("span", {innerHTML:"<a href='"+malurl+"' target='_blank'>MAL Search</a>"}));
-            $parent.appendChild($js.el("br"));
-            
+            handleInfo(this.el, info);
             nextFollow();
         };
         req.send();
@@ -605,6 +688,15 @@ if (/\/reader/.exec(window.location.pathname)) {
             }
         });
         allMyFollows();
+    }
+
+    if (/\/comics/.exec(window.location.pathname)) {
+        // A manga page
+        console.log("Manga Page");
+        var mangaID = getMangaID(window.location.pathname);
+        var mangaInfo = parseMangaPage(document);
+        saveMangaInfo(mangaID, mangaInfo);
+        console.log({msg:"Parsed Manga Page", id:mangaID, info:mangaInfo});
     }
 
     if ($js("#hook_watched_items")) {
