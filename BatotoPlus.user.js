@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.0
+// @version        1.3.1
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -609,6 +609,10 @@ function reader_page(mutations, instance) {
 
         var imgs = $$js("#reader>div>img");
         for (var i = 0; i < imgs.length; ++i) {
+            // Create holder; this preserves order of requests.
+            var $span = $js.el("span");
+            $el.appendChild($span);
+
             // create a data blob of these images
             var type = imgs[i].src.split(".").pop();
             var req = new XMLHttpRequest();
@@ -616,6 +620,7 @@ function reader_page(mutations, instance) {
             req.responseType = "arraybuffer";
             req.filetype = type;
             req.i = i;
+            req.span = $span;
             req.onload = function (event) {
                 var type = this.filetype;
                 var data = new Blob([this.response], {type: "image/" +
@@ -627,8 +632,8 @@ function reader_page(mutations, instance) {
                 var $a = $js.el("a", {href: window.URL.createObjectURL(data),
                                       download: title + pg_str + "." + type,
                                       innerHTML: title + pg_str});
-                $el.appendChild($a);
-                $el.appendChild($js.el("br"));
+                this.span.appendChild($a);
+                this.span.appendChild($js.el("br"));
             };
             req.send();
         }
