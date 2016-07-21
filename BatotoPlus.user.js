@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.1
+// @version        1.3.2
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -315,7 +315,7 @@ if (unsafeWindow) {
         window.prompt("chreaddb", window.localStorage[chreadkey]);
     };
 
-    // Make my jslib available, good for development.
+    // Make my jslib available, useful for development/debugging.
     unsafeWindow.$js = $js;
     unsafeWindow.$$js = $$js;
 }
@@ -347,6 +347,19 @@ function markchstatus() {
             } else {
                 // Do nothing for now
             }
+        }
+    }
+}
+function markcomicchstatus() {
+    var entries = $$js("table.chapters_list tr.chapter_row");
+    for (var i = 0; i < entries.length; ++i) {
+        var entry = entries[i];
+        var a = $js("td>a", entry);
+        if (!a) {continue;}
+        var chhash = gethash(a.href);
+        if (chreadstatus(chhash)) {
+            // visited
+            entry.style["background-color"] = "lightgreen";
         }
     }
 }
@@ -702,6 +715,8 @@ if (/\/reader/.exec(window.location.pathname)) {
         var mangaInfo = parseMangaPage(document);
         saveMangaInfo(mangaID, mangaInfo);
         console.log({msg:"Parsed Manga Page", id:mangaID, info:mangaInfo});
+
+        markcomicchstatus();
     }
 
     if ($js("#hook_watched_items")) {
