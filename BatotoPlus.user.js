@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.2
+// @version        1.3.3
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -253,18 +253,144 @@ function parseMangaPage(doc, url=undefined) {
     return info;
 }
 
-
-/* Chapter Read Status
-   The following is a list of the functions used to track ch read status 
+/* New chapter read db
+ * Always pushes a web update if we add a 'new' entry to the db.
+ * checkForUpdate provides a mechanism for updating from web every hour.
+ * WiP
  */
-var chreadkey = "chStatus";
-if (!(chreadkey in window.localStorage)) {
-    window.localStorage[chreadkey] = JSON.stringify({});
+function chReadDB() {
+    this.chReadKey = "chStatus";
+    this.updateKey = "chStatusLastUpdate";
+    this.webConfigKey = "chStatusWebConfig";
+    /* Configuration for updating web db on remote site.
+     * {url: url to submission page, key: dbkey, 
+     *  pass: password, interval: time in minutes between autoupdates}
+     * For no webdb:
+     * this.webConfig = false; 
+     */
+    this.webConfig = false;
+    if ((this.webConfigKey in window.localStorage)) {
+        this.webConfig = JSON.parse(window.localStorage[this.webConfigKey]);
+    }
+
+    // Initialize localStorage keys if necessary
+    if (!(this.updateKey in window.localStorage)) {
+        window.localStorage[this.updateKey] = new Date(0).toJSON();
+    }
+    if (!(this.chReadKey in window.localStorage)) {
+        window.localStorage[this.chReadKey] = JSON.stringify({});
+    }
+    this.db = JSON.parse(window.localStorage[this.chReadKey]);
+
+    this.reload = function() {
+        var newDB = JSON.parse(window.localStorage[this.chReadKey]);
+        // Run handler if new key was loaded.
+        for (var key in newDB) {
+            if (!(key in this.db)) {
+                this.db = newDB;
+                if (this.onUpdate) {this.onUpdate();}
+                return;
+            }
+        }
+        this.db = newDB;
+    };
+    this.save = function() {
+        window.localStorage[this.chReadKey] = JSON.stringify(this.db);
+    };
+    this.status = function(hash) {
+        hash = this.cleanHash(hash);
+        this.reload();
+        if (this.db[hash]) {
+            return this.db[hash];
+        }
+        return false;
+    };
+    this.cleanHash = function(hash) {
+        // cleans hash
+        if (/_[0-9]{1,4}$/.exec(hash)) {
+            hash = hash.substr(0, /_[0-9]{1,4}$/.exec(hash).index);
+        }
+        return hash;
+    };
+    this.clean = function() {
+        // Cleans all keys in the db
+        this.reload();
+        for (var key in this.db) {
+            if (/_[0-9]{1,4}$/.exec(key)) {
+                var newkey = key.substr(0, /_[0-9]{1,4}$/.exec(key).index);
+                if (!(newkey in this.db)) {
+                    this.db[newkey] = 1;
+                }
+                delete this.db[key];
+            }
+        }
+        this.save()
+    };
+    this.update = function() {
+        if (this.webConfig) {
+            this.reload();
+            var params = "db=" + this.webConfig.key + 
+                         "&pass=" + this.webConfig.pass + 
+                         "&data=" + JSON.stringify(this.db);
+            var req = new XMLHttpRequest();
+            req.open("POST", "http://game.kiri.moe/manga/index.php");
+            req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            req.send(params);
+            req.readDB = this;
+            req.onload = function (e) {
+                this.readDB.merge(this.response);
+                window.localStorage[this.readDB.updateKey] = new Date().toJSON();
+                console.log("CHDB Updated");
+            }
+            req.onerror = function (e) {
+                console.log({msg:"Error updating CHDB", request:this});
+            }
+            console.log("Sending CHDB");
+        } else {
+            window.localStorage[this.updateKey] = new Date().toJSON();
+        }
+    };
+    this.checkForUpdate = function() {
+        if (this.webConfig) {
+            var last_update = new Date(window.localStorage[this.updateKey]);
+            var elapsed_minutes = (new Date() - last_update) / 1000 / 60;
+            if (elapsed_minutes > this.webConfig.interval) {
+                this.update();
+            }
+        }
+    };
+    this.merge = function(dbJSON) {
+        var newKey = false;
+        var newDB = JSON.parse(dbJSON);
+        this.reload();
+        for (var key in newDB) {
+            key = this.cleanHash(key);
+            if (!(key in this.db)) {
+                newKey = true;
+                console.log("Adding key" + key);
+                this.db[key] = 1;
+            }
+        }
+        this.save();
+        if (newKey && this.onUpdate) {this.onUpdate();}
+    };
+    this.set = function(hash) {
+        hash = this.cleanHash(hash);
+        if (!this.status(hash)) {
+            this.db[hash] = 1;
+            this.save();
+            this.update();
+            if (this.onUpdate) {this.onUpdate();}
+        }
+    };
+    // Event Handler for making page changes on readdb update.
+    this.onUpdate = null;
+    // Do check in constructor; should run once per page load
+    this.checkForUpdate(); 
 }
-var chreaddb = JSON.parse(window.localStorage[chreadkey]);
-function reloadreaddb() {
-    chreaddb = JSON.parse(window.localStorage[chreadkey]);
-}
+
+var readDB = new chReadDB();
+
 // Get url hash, useful for getting hashid from chapter links
 function gethash (url) {
     if (url.lastIndexOf("#") == -1) {
@@ -272,48 +398,16 @@ function gethash (url) {
     }
     return url.substr(url.lastIndexOf("#"));
 }
-// Returns if the chapter from the passed hashid has been visited.
-function chreadstatus(hash) {
-    if (chreaddb[hash]) {
-        return chreaddb[hash];
-    }
-    return false;
-}
-//Cleans up any _# chapter hashes
-function cleanchdb() {
-    reloadreaddb();
-    for (var key in chreaddb) {
-        if (/_[0-9]{1,4}$/.exec(key)) {
-            var newkey = key.substr(0, /_[0-9]{1,4}$/.exec(key).index);
-            if (!(newkey in chreaddb)) {
-                chreaddb[newkey] = 1;
-            }
-            delete chreaddb[key];
-        }
-    }
-    window.localStorage[chreadkey] = JSON.stringify(chreaddb);
-}
-//Takes a JSON string and parses it as a chreaddb and merges it
-function mergechdb(chreadstring) {
-    reloadreaddb();
-    var newchreaddb = JSON.parse(chreadstring);
-    for (var key in newchreaddb) {
-        if (!(key in chreaddb)) {
-            console.log("Adding key" + key);
-            chreaddb[key] = 1;
-        }
-    }
-    // Clean DB
-    window.localStorage[chreadkey] = JSON.stringify(chreaddb);
-    cleanchdb();
-}
+
 if (unsafeWindow) {
     unsafeWindow.BP = {};
-    unsafeWindow.BP.mergechdb = mergechdb;
-    unsafeWindow.BP.cleanchdb = cleanchdb;
+    unsafeWindow.BP.readDB = readDB;
+    unsafeWindow.BP.mergechdb = readDB.merge;
+    unsafeWindow.BP.cleanchdb = readDB.clean;
     unsafeWindow.BP.promptchdb = function () {
-        window.prompt("chreaddb", window.localStorage[chreadkey]);
+        window.prompt("chreaddb", window.localStorage[readDB.chReadKey]);
     };
+    unsafeWindow.BP.updatechdb = readDB.update;
 
     // Make my jslib available, useful for development/debugging.
     unsafeWindow.$js = $js;
@@ -327,9 +421,7 @@ function savechhash() {
         hashid = window.location.hash.substr(0, /_[0-9]{1,4}$/.exec(hashid).index);
     }
     console.log("Saving chapter status " + hashid);
-    reloadreaddb();
-    chreaddb[hashid] = 1;
-    window.localStorage[chreadkey] = JSON.stringify(chreaddb);
+    readDB.set(hashid);
 }
 function markchstatus() {
     // Assumed to be on my follows page
@@ -341,7 +433,7 @@ function markchstatus() {
             var entry = entries[i];
             var ch = entry.children[1].children[1];
             var chhash = gethash(ch.href);
-            if (chreadstatus(chhash)) {
+            if (readDB.status(chhash)) {
                 // mark green
                 entry.children[0].style["background-color"] = "green";
             } else {
@@ -357,7 +449,7 @@ function markcomicchstatus() {
         var a = $js("td>a", entry);
         if (!a) {continue;}
         var chhash = gethash(a.href);
-        if (chreadstatus(chhash)) {
+        if (readDB.status(chhash)) {
             // visited
             entry.style["background-color"] = "lightgreen";
         }
@@ -372,7 +464,7 @@ function marksidebarchstatus() {
         if (!a) {continue;}
         a = a.parentNode;
         var chhash = gethash(a.href);
-        if (chreadstatus(chhash)) {
+        if (readDB.status(chhash)) {
             // visited
             entry.children[0].style["background-color"] = "lightgreen";
         }
@@ -701,7 +793,7 @@ if (/\/reader/.exec(window.location.pathname)) {
         markchstatus();
         document.addEventListener("visibilitychange", function () {
             if (!document.hidden) {
-                reloadreaddb();
+                readDB.checkForUpdates();
                 markchstatus();
             }
         });
@@ -723,7 +815,7 @@ if (/\/reader/.exec(window.location.pathname)) {
         marksidebarchstatus();
         document.addEventListener("visibilitychange", function () {
             if (!document.hidden) {
-                reloadreaddb();
+                readDB.checkForUpdates();
                 marksidebarchstatus();
             }
         });
