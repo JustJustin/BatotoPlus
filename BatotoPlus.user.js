@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.3
+// @version        1.3.4
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -793,7 +793,7 @@ if (/\/reader/.exec(window.location.pathname)) {
         markchstatus();
         document.addEventListener("visibilitychange", function () {
             if (!document.hidden) {
-                readDB.checkForUpdates();
+                readDB.checkForUpdate();
                 markchstatus();
             }
         });
@@ -815,7 +815,7 @@ if (/\/reader/.exec(window.location.pathname)) {
         marksidebarchstatus();
         document.addEventListener("visibilitychange", function () {
             if (!document.hidden) {
-                readDB.checkForUpdates();
+                readDB.checkForUpdate();
                 marksidebarchstatus();
             }
         });
