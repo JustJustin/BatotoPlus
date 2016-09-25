@@ -553,7 +553,7 @@ function re_results(re, str) {
 }
 function getch(name) {
     // Try's to get the most likely number to be the chapter in the chapter select
-    var re = /[\d]+(\.[\d]+)?/gi;
+    var re = /[\d]+(\.[\d]+(\.[\d]+)?)?/gi;
     var res = re_results(re, name);
     console.log(res);
     if (res) {return res[res.length-1][0];}
