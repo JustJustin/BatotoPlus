@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.4
+// @version        1.3.5
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -161,7 +161,7 @@ if (!(mangaCacheKey in window.localStorage)) {
     window.localStorage[mangaCacheKey] = JSON.stringify({});
 }
 function getMangaID (url) {
-    if (url.contains("/comics/")) {
+    if (url.includes("/comics/")) {
         var parts = url.split("/");
         var part = "";
         for (var i = 0; i < parts.length; ++i) {
