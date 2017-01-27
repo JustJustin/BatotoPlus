@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.6
+// @version        1.3.7
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -554,7 +554,7 @@ function re_results(re, str) {
 function getch(name) {
     // Try's to get the most likely number to be the chapter in the chapter select
     // See if there is a chapter string
-    var re_ch = /ch?(apter)?\.?( )?([\d]+(\.[\d]+))?/gi;
+    var re_ch = /ch?(apter)?\.?( )?([\d]+(\.[\d]+(\.[\d]+)?)?)/gi;
     var res = re_ch.exec(name);
     if (res) {
         return res[3];
