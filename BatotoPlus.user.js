@@ -161,7 +161,7 @@ if (!(mangaCacheKey in window.localStorage)) {
     window.localStorage[mangaCacheKey] = JSON.stringify({});
 }
 function getMangaID (url) {
-    if (url.contains("/comics/")) {
+    if (url.includes("/comics/")) {
         var parts = url.split("/");
         var part = "";
         for (var i = 0; i < parts.length; ++i) {
