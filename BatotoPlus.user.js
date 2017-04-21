@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.4
+// @version        1.3.7
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -161,7 +161,7 @@ if (!(mangaCacheKey in window.localStorage)) {
     window.localStorage[mangaCacheKey] = JSON.stringify({});
 }
 function getMangaID (url) {
-    if (url.contains("/comics/")) {
+    if (url.includes("/comics/")) {
         var parts = url.split("/");
         var part = "";
         for (var i = 0; i < parts.length; ++i) {
@@ -553,6 +553,13 @@ function re_results(re, str) {
 }
 function getch(name) {
     // Try's to get the most likely number to be the chapter in the chapter select
+    // See if there is a chapter string
+    var re_ch = /ch?(apter)?\.?( )?([\d]+(\.[\d]+(\.[\d]+)?)?)/gi;
+    var res = re_ch.exec(name);
+    if (res) {
+        return res[3];
+    }
+    // fall back, just find a number
     var re = /[\d]+(\.[\d]+(\.[\d]+)?)?/gi;
     var res = re_results(re, name);
     console.log(res);
@@ -797,6 +804,9 @@ if (/\/reader/.exec(window.location.pathname)) {
                 markchstatus();
             }
         });
+        readDB.onUpdate = function () {
+            markchstatus();
+        };
         allMyFollows();
     }
 
@@ -819,6 +829,9 @@ if (/\/reader/.exec(window.location.pathname)) {
                 marksidebarchstatus();
             }
         });
+        readDB.onUpdate = function () {
+            marksidebarchstatus();
+        };
     }
     
     // Not read page, front page?
