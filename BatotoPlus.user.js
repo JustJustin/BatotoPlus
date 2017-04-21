@@ -719,6 +719,12 @@ function reader_page(mutations, instance) {
         $div.style['width'] = "20px";
         $div.innerHTML = "/" + page_select.options.length;
         $js.after(parent, $div);
+        
+        var bot = $$js("div.moderation_bar")[1];
+        var bot_page_select = $js("select#page_select", bot);
+        var bot_parent = bot_page_select.parentNode;
+        bot_parent.style['margin-right'] = "0px";
+        $js.after(bot_parent, $div.cloneNode(true));
     }
     if (!page_select) {
         // No pages... maybe multiple images?
