@@ -678,6 +678,7 @@ function allMyFollows() {
 
 function reader_page(mutations, instance) {
     if ($js("#reader>.suggested_title")) {
+        // already did our thing
         return;
     }
     
@@ -710,6 +711,15 @@ function reader_page(mutations, instance) {
     if (ch.length < 2) ch = "0"+ch;
     
     var page_select = $js("#content div.moderation_bar > ul select#page_select");
+    if (page_select) {
+        var parent = page_select.parentNode;
+        parent.style['margin-right'] = "0px";
+        var $div = $js.el("li", {'class': "page_max"});
+        $div.style['display'] = "inline-block";
+        $div.style['width'] = "20px";
+        $div.innerHTML = "/" + page_select.options.length;
+        $js.after(parent, $div);
+    }
     if (!page_select) {
         // No pages... maybe multiple images?
         // This is usually webcomics/4komas
