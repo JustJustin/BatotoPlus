@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.8
+// @version        1.3.9
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -137,6 +137,7 @@ function charfill(ch, code, lim){
 		keycode[String.fromCharCode(ch.charCodeAt()+i)] = code+i;
 }
 charfill('a', 65, 26); charfill('0', 48, 10);
+$base.extend(keycode, {'up': 38, 'down': 40});
 
 function next(){
     if ($js('#comic_page')) {
@@ -493,6 +494,7 @@ var myKeyHandler = function(e){
 			next();
 			break;
 		case keycode.w:
+        case keycode.up:
 			if (scrollInterval === null) {
 				window.scrollBy(0, -57);
 				scrollInterval = setInterval(function () {
@@ -501,6 +503,7 @@ var myKeyHandler = function(e){
 			}
 			break;
 		case keycode.s:
+        case keycode.down:
 			if (scrollInterval === null) {
 				window.scrollBy(0, 57);
 				scrollInterval = setInterval(function () {
@@ -513,6 +516,8 @@ var myKeyHandler = function(e){
 }
 var myKeyUp = function(e) {
 	switch (e.keyCode) {
+        case keycode.up:
+        case keycode.down:
 		case keycode.w:
 		case keycode.s:
 			if (scrollInterval !== null) {
