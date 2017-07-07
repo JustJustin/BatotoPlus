@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.3.9
+// @version        1.4.0
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -72,6 +72,9 @@ $base.extend($base, {
     },
     space: function(el) {
         el.appendChild(document.createTextNode(' '));
+    },
+    css: function(el, css) {
+        $js.extend(el.style, css);
     },
     el: function(tagname, attrs) {
         var el = document.createElement(tagname);
@@ -686,6 +689,7 @@ function reader_page(mutations, instance) {
         // already did our thing
         return;
     }
+    removeHTTPS();
     
     // If on a read page, ie manga page.
     // Handle scroll events
@@ -702,9 +706,14 @@ function reader_page(mutations, instance) {
     }
     /* Move comic image up */
     if ($js("#comic_page")) {
+        $js.css($js("#comic_page").parentNode.parentNode,
+            { top: "0px", marginBottom: "0px", right: "0px" }
+        );
+        /*
         $js.extend( $js("#comic_page").parentNode.parentNode.style,
                     { top: "0px", marginBottom: "0px", right: "0px" }
                   );
+        */
     }
     var title = $js("#content div.moderation_bar > ul > li:first-child a").innerHTML;
     title = title.replace(/ /g, "-");
@@ -807,6 +816,18 @@ function reader_page(mutations, instance) {
     $el.style.textAlign = "center";
     $js.after($bot, $el);
 }
+
+if (window.location.protocol != "http:") {
+    window.location.href = "http:" + window.location.href.slice(6);
+}
+var removeHTTPS = function() {
+    //remote https
+    var $links = $$js("a");
+    for (var i = 0; i < $links.length; ++i) {
+        var $a = $links[i];
+        if ($a.protocol == "https:") {$a.protocol = "http:";}
+    }
+}; removeHTTPS();
 
 if (/\/reader/.exec(window.location.pathname)) {
     console.log("Reader Page");
