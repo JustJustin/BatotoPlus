@@ -74,7 +74,7 @@ $base.extend($base, {
         el.appendChild(document.createTextNode(' '));
     },
     css: function(el, css) {
-        $js.extend(el.style, css);
+        $base.extend(el.style, css);
     },
     el: function(tagname, attrs) {
         var el = document.createElement(tagname);
