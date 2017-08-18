@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.4.0
+// @version        1.4.1
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -446,7 +446,7 @@ function markchstatus() {
         }
     }
 }
-function markcomicchstatus() {
+function markMangaPageChStatus() {
     var entries = $$js("table.chapters_list tr.chapter_row");
     for (var i = 0; i < entries.length; ++i) {
         var entry = entries[i];
@@ -683,8 +683,37 @@ function allMyFollows() {
     };
     $button.onclick = startFollows;
 }
+function mangaPage() {
+    
+    var mangaID = getMangaID(window.location.pathname);
+    var mangaInfo = parseMangaPage(document);
+    saveMangaInfo(mangaID, mangaInfo);
+    console.log({msg:"Parsed Manga Page", id:mangaID, info:mangaInfo});
+    
+    markMangaPageChStatus();
+    readDB.onUpdate = function() {
+        markMangaPageChStatus();
+    };
+    document.addEventListener("visibilitychange", function() {
+        if (!document.hidden) {
+            readDB.checkForUpdate();
+        }
+    });
 
-function reader_page(mutations, instance) {
+    // Allow for double click to update chapter status
+    var chs = $$js("table.chapters_list tr.chapter_row");
+    for (var i = 0; i < chs.length; ++i) {
+        var ch = chs[i];
+        ch.addEventListener("dblclick", function(e) {
+            var a = $js("td>a", this);
+            if (!a) {return;}
+            var hash = gethash(a.href);
+            readDB.set(hash);
+        });
+    }
+}
+
+function readerPage(mutations, instance) {
     if ($js("#reader>.suggested_title")) {
         // already did our thing
         return;
@@ -832,7 +861,7 @@ var removeHTTPS = function() {
 if (/\/reader/.exec(window.location.pathname)) {
     console.log("Reader Page");
     var $reader = $js("#reader");
-    var observer = new MutationObserver( reader_page );
+    var observer = new MutationObserver( readerPage );
     observer.observe($reader, {childList: true, attributes: false, characterData: false});
 
 } else {
@@ -855,12 +884,7 @@ if (/\/reader/.exec(window.location.pathname)) {
     if (/\/comics/.exec(window.location.pathname)) {
         // A manga page
         console.log("Manga Page");
-        var mangaID = getMangaID(window.location.pathname);
-        var mangaInfo = parseMangaPage(document);
-        saveMangaInfo(mangaID, mangaInfo);
-        console.log({msg:"Parsed Manga Page", id:mangaID, info:mangaInfo});
-
-        markcomicchstatus();
+        mangaPage();
     }
 
     if ($js("#hook_watched_items")) {
