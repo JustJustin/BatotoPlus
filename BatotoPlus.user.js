@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.4.1
+// @version        1.4.2
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -330,12 +330,13 @@ function chReadDB() {
         }
         this.save()
     };
-    this.update = function() {
+    this.update = function(sendDB = false) {
         if (this.webConfig) {
             this.reload();
             var params = "db=" + this.webConfig.key + 
                          "&pass=" + this.webConfig.pass + 
-                         "&data=" + JSON.stringify(this.db);
+                         "&data=" + JSON.stringify( (sendDB ? this.db : {}) ) + 
+                          (sendDB ? "" : "&action=get");
             var req = new XMLHttpRequest();
             req.open("POST", "http://game.kiri.moe/manga/index.php");
             req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -350,6 +351,32 @@ function chReadDB() {
                 console.log({msg:"Error updating CHDB", request:this});
             }
             console.log("Sending CHDB");
+        } else {
+            window.localStorage[this.updateKey] = new Date().toJSON();
+        }
+    };
+    this.deleteUpdate = function(hash) {
+        if (this.webConfig) {
+            var data = {};
+            data[hash] = 1;
+            var params = "db=" + this.webConfig.key +
+                         "&pass=" + this.webConfig.pass +
+                         "&action=delete" +
+                         "&data=" + JSON.stringify(data);
+            var req = new XMLHttpRequest();
+            req.open("POST", "http://game.kiri.moe/manga/index.php");
+            req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            req.send(params);
+            req.readDB = this;
+            req.onload = function (e) {
+                this.readDB.merge(this.response);
+                window.localStorage[this.readDB.updateKey] = new Date().toJSON();
+                console.log("CHDB Updated after delete");
+            }
+            req.onerror = function (e) {
+                console.log({msg:"Error deleting from CHDB", request:this});
+            }
+            console.log("Sending CHDB delete");
         } else {
             window.localStorage[this.updateKey] = new Date().toJSON();
         }
@@ -383,7 +410,16 @@ function chReadDB() {
         if (!this.status(hash)) {
             this.db[hash] = 1;
             this.save();
-            this.update();
+            this.update(true);
+            if (this.onUpdate) {this.onUpdate();}
+        }
+    };
+    this.delete = function(hash) {
+        hash = this.cleanHash(hash);
+        if (this.status(hash)) {
+            delete this.db[hash];
+            this.save();
+            this.deleteUpdate(hash);
             if (this.onUpdate) {this.onUpdate();}
         }
     };
@@ -456,6 +492,16 @@ function markMangaPageChStatus() {
         if (readDB.status(chhash)) {
             // visited
             entry.style["background-color"] = "lightgreen";
+            if (!entry.unmark) {
+                entry.unmark = true;
+                entry.hash = chhash;
+                entry.addEventListener("dblclick", function() {
+                    if (this.style["background-color"] = "lightgreen") {
+                        this.style["background-color"] = "";
+                        ReadDB.delete(this.hash);
+                    }
+                });
+            }
         }
     }
 }
