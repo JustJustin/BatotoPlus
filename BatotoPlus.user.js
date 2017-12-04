@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.4.2
+// @version        1.5.0
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -621,6 +621,54 @@ function getch(name) {
     else {return null;}
 }
 
+$js.addStyle(".mangalistingmo { \
+    display: none; \
+    position: absolute; \
+    max-width: 600px; \
+    background: white; \
+    border: 1px solid grey; \
+    padding: 5px; \
+    overflow: auto; \
+    margin-top: 15px; \
+    margin-left: 300px;\
+}");
+function mangaListing($el) {
+    this.build = function(info, $el) {
+        var $div = $js.el("div", {class: "mangalistingmo"});
+        var $des = $js.el("span", {innerHTML: info.description});
+        var $img = $js.el("img", {src: info.img_src, alt:info.title});
+        $img.style['float'] = "right";
+        $img.style['max-width'] = "300px";
+        $div.appendChild($img);
+        $div.appendChild($des);
+        $el.appendChild($div);
+        $el.addEventListener("mouseover", function(e) {
+            if (mangaListing.mo) {$js(".mangalistingmo", this).style['display'] = "block";}
+        });
+        $el.addEventListener("mouseout", function(e) {$js(".mangalistingmo", this).style['display'] = "none";});
+    };
+
+    // Add a mouseover display for manga listings
+    var href = $js("a", $el).href;
+    var id = getMangaID(href);
+    var info = getMangaInfo(id);
+    if (info) {
+        return this.build(info, $el);
+    }
+    var req = new XMLHttpRequest();
+    req.open("GET", href);
+    req._this = this;
+    req.el = $el;
+    req.responseType = "document";
+    req.onsuccess = function(dom) {
+        var $dom = this.response;
+        var info = parseMangaPage($dom, this.responseURL);
+        saveMangaInfo(info.id, info);
+        this._this.build(info, this.el);
+    };
+}
+mangaListing.mo = true;
+
 function allMyFollows() {
     // Settings
     var useCacheIfCompleted = true;
@@ -764,7 +812,9 @@ function readerPage(mutations, instance) {
         // already did our thing
         return;
     }
-    removeHTTPS();
+    if (config.https == false) {
+        removeHTTPS();
+    }
     
     // If on a read page, ie manga page.
     // Handle scroll events
@@ -896,13 +946,33 @@ if (window.location.protocol != "http:") {
     window.location.href = "http:" + window.location.href.slice(6);
 }
 var removeHTTPS = function() {
-    //remote https
+    //remote https this is done to ensure that our db operates on the same domain.
     var $links = $$js("a");
     for (var i = 0; i < $links.length; ++i) {
         var $a = $links[i];
+        if (/(login)|(logout)/.exec($a.pathname)) {
+            console.log( "Not removing HTTPS for " + $a.pathname );
+            continue;
+        }
         if ($a.protocol == "https:") {$a.protocol = "http:";}
     }
-}; removeHTTPS();
+};
+
+var config = {
+    https: false,
+    init: function() {
+        // do configuration
+    },
+    buildSettingsDialog: function() {
+
+    },
+};
+
+config.init();
+
+if (config.https == false) {
+    removeHTTPS();
+}
 
 if (/\/reader/.exec(window.location.pathname)) {
     console.log("Reader Page");
@@ -924,6 +994,22 @@ if (/\/reader/.exec(window.location.pathname)) {
         readDB.onUpdate = function () {
             markchstatus();
         };
+        var $lis = $$js("table.chapters_list tr:not(.header)>td:nth-child(2)");
+        for (var i = 0; i < $lis.length; ++i) {
+            mangaListing($lis[i]);
+        }
+
+        var $header = $js("h3.maintitle");
+        var $span = $js.el("span", {style: "float: right; font-size: .8em;"});
+        var $box = $js.el("input", {id: "BP_manga_mo", type:"checkbox", checked:mangaListing.mo});
+        var $lbl = $js.el("label", {innerHTML: "Mouseover Window", style: "margin-left: 5px;"});
+
+        $lbl.setAttribute("for", "BP_manga_mo");
+        $box.onclick = function() {mangaListing.mo = this.checked;};
+
+        $span.appendChild($box);
+        $span.appendChild($lbl);
+        $header.appendChild($span);
         allMyFollows();
     }
 
