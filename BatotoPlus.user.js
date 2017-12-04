@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.5.0
+// @version        1.5.1
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -848,6 +848,11 @@ function readerPage(mutations, instance) {
     var ch = ch_select.options[ch_select.selectedIndex].innerHTML;
     ch = getch(ch);
     if (ch.length < 2) ch = "0"+ch;
+
+    for (var i = 0; i < ch_select.options.length; ++i) {
+        var opt = ch_select.options[i];
+        if (readDB.status(gethash(opt.value))) { opt.style['background-color'] = "lightgreen"; }
+    }
     
     var page_select = $js("#content div.moderation_bar > ul select#page_select");
     if (page_select) {
