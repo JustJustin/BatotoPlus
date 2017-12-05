@@ -11,7 +11,6 @@
 // @include        https://bato.to/*
 // @downloadURL    https://github.com/JustJustin/BatotoPlus/raw/master/BatotoPlus.user.js
 // @run-at         document-end
-// @grant          none
 
 // ==/UserScript==
 
@@ -914,35 +913,6 @@ function readerPage(mutations, instance) {
                            (imgs.length > 9 && pg <= 9 ? "p0"+pg : "p"+pg));
             var name = title + pg_str;
             getSuggestedDownload($el, imgs[i], name);
-            /*
-            // Create holder; this preserves order of requests.
-            var $span = $js.el("span");
-            $el.appendChild($span);
-
-            // create a data blob of these images
-            var type = imgs[i].src.split(".").pop();
-            var req = new XMLHttpRequest();
-            req.open("GET", "//cors-anywhere.herokuapp.com/" + imgs[i].src);
-            req.responseType = "arraybuffer";
-            req.filetype = type;
-            req.i = i;
-            req.span = $span;
-            req.onload = function (event) {
-                var type = this.filetype;
-                var data = new Blob([this.response], {type: "image/" +
-                                                      (type == "jpg" ? "jpeg" : type)});
-                
-                var pg = this.i+1;
-                var pg_str = (imgs.length == 1 ? "" : 
-                              (imgs.length > 9 && pg <= 9 ? "p0"+pg : "p"+pg));
-                var $a = $js.el("a", {href: window.URL.createObjectURL(data),
-                                      download: title + pg_str + "." + type,
-                                      innerHTML: title + pg_str});
-                this.span.appendChild($a);
-                this.span.appendChild($js.el("br"));
-            };
-            req.send();
-            */
         }
         $js.after($bot, $el);
         return;
@@ -962,20 +932,6 @@ function readerPage(mutations, instance) {
     if ($js("#comic_page")) {
         var img = $js("#comic_page");
         getSuggestedDownload($el, img, name);
-        /*
-        var type = img.src.split(".").pop();
-        var req = new XMLHttpRequest();
-        req.open("GET", "//cors-anywhere.herokuapp.com/" + img.src);
-        req.responseType = "arraybuffer";
-        req.onload = function (event) {
-            var data = new Blob([this.response], {type: "image/" +
-                                                  (type == "jpg" ? "jpeg" : type)});
-            var $a = $js.el("a", {href:window.URL.createObjectURL(data),
-                                  download: name + "." + type,
-                                  innerHTML: name});
-            $el.appendChild($a);
-        };
-        req.send(); */
     } else {
         $el.innerHTML = name;
     }
