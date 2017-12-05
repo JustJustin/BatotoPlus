@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.5.1
+// @version        1.5.2
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -11,6 +11,7 @@
 // @include        https://bato.to/*
 // @downloadURL    https://github.com/JustJustin/BatotoPlus/raw/master/BatotoPlus.user.js
 // @run-at         document-end
+// @grant          none
 
 // ==/UserScript==
 
@@ -807,6 +808,33 @@ function mangaPage() {
     }
 }
 
+function getSuggestedDownload($div, $img, title) {
+    // Create holder to preserve order
+    var $span = $js.el("span");
+    $div.appendChild($span);
+    
+    // Create a data blob of these images
+    var req = new XMLHttpRequest();
+    var imgsrc = (config.settings.ajaxfix ? $img.src : "//cors-anywhere.herokuapp.com/" + img.src);
+    req.open("GET", imgsrc);
+    $js.extend(req, {title: title, span: $span, 
+                     type: $img.src.split(".").pop()});
+    req.responseType = "arraybuffer";
+    req.onload = function(event) {
+        console.log({msg: "Got download resource", req: req, event: event});
+        var data = new Blob([this.response], 
+                            {type:"image/" + (this.type == "jpg" ? "jpeg" : this.type)});
+        var $a = $js.el("a", {href: window.URL.createObjectURL(data), 
+                              download: this.title + "." + this.type,
+                              innerHTML: this.title});
+        this.span.appendChild($a);
+        this.span.appendChild($js.el("br"));
+    };
+    req.onerror = function(event) {
+        console.log({msg: "Error getting download resource", req: req, event: event});
+    };
+    req.send();
+}
 function readerPage(mutations, instance) {
     if ($js("#reader>.suggested_title")) {
         // already did our thing
@@ -881,6 +909,12 @@ function readerPage(mutations, instance) {
 
         var imgs = $$js("#reader>div>img");
         for (var i = 0; i < imgs.length; ++i) {
+            var pg = i + 1;
+            var pg_str = (imgs.length == 1 ? "" : 
+                           (imgs.length > 9 && pg <= 9 ? "p0"+pg : "p"+pg));
+            var name = title + pg_str;
+            getSuggestedDownload($el, imgs[i], name);
+            /*
             // Create holder; this preserves order of requests.
             var $span = $js.el("span");
             $el.appendChild($span);
@@ -908,6 +942,7 @@ function readerPage(mutations, instance) {
                 this.span.appendChild($js.el("br"));
             };
             req.send();
+            */
         }
         $js.after($bot, $el);
         return;
@@ -926,6 +961,8 @@ function readerPage(mutations, instance) {
     
     if ($js("#comic_page")) {
         var img = $js("#comic_page");
+        getSuggestedDownload($el, img, name);
+        /*
         var type = img.src.split(".").pop();
         var req = new XMLHttpRequest();
         req.open("GET", "//cors-anywhere.herokuapp.com/" + img.src);
@@ -938,7 +975,7 @@ function readerPage(mutations, instance) {
                                   innerHTML: name});
             $el.appendChild($a);
         };
-        req.send();
+        req.send(); */
     } else {
         $el.innerHTML = name;
     }
@@ -969,7 +1006,7 @@ var config = {
     pages: {},
     init: function() {
         if (("BPconfig" in window.localStorage)) {
-            $js.extend(settings, JSON.parse(window.localStorage["BPconfig"]));
+            $js.extend(this.settings, JSON.parse(window.localStorage["BPconfig"]));
         }
         // do configuration
         this.buildSettingsDialog();
@@ -1004,10 +1041,12 @@ var config = {
             height: 279px;\
             width: 300px;\
             display: none;\
+            padding-top: 5px; \
         }\
         .BPconfighead .BPconfigclose { float: right; max-height: 20px; cursor: pointer; }\
         .BPconfignub:hover { opacity: 1; cursor: pointer; }\
-        .BPconfigpage>span { margin-left: 5px; margin-right: 5px; }");
+        .BPconfigpage>span { margin-left: 5px; margin-right: 5px; }\
+        .BPconfigpage label { margin-left: 5px; }");
         var $nub = $js.el("div", {class: "BPconfignub", innerHTML: "{+}"});
         var $box = $js.el("div", {class: "BPconfig"});
         $nub.addEventListener("click", function () {
