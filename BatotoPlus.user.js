@@ -812,7 +812,7 @@ function readerPage(mutations, instance) {
         // already did our thing
         return;
     }
-    if (config.https == false) {
+    if (config.settings.https == false) {
         removeHTTPS();
     }
     
@@ -964,18 +964,107 @@ var removeHTTPS = function() {
 };
 
 var config = {
-    https: false,
+    settings: {https: false, ajaxfix: false},
+    current: null,
+    pages: {},
     init: function() {
+        if (("BPconfig" in window.localStorage)) {
+            $js.extend(settings, JSON.parse(window.localStorage["BPconfig"]));
+        }
         // do configuration
+        this.buildSettingsDialog();
+        this.main();
     },
     buildSettingsDialog: function() {
-
+        $js.addStyle(".BPconfig {\
+            position: fixed; \
+            bottom: 10px; \
+            right: 10px; \
+            width: 300px; \
+            height: 300px; \
+            display: none; \
+            border: solid 2px line grey; \
+            background: #f0f0f0; \
+        }\
+        .BPconfignub {\
+            position: fixed; \
+            right: 10px; \
+            bottom: 10px; \
+            opacity: 0.5; \
+            color: white; \
+        }\
+        .BPconfighead {\
+            position: relative;\
+            height: 20px;\
+            overflow: auto;\
+            border-bottom: 1px solid black;\
+        }\
+        .BPconfigpage {\
+            position: relative;\
+            height: 279px;\
+            width: 300px;\
+            display: none;\
+        }\
+        .BPconfighead .BPconfigclose { float: right; max-height: 20px; cursor: pointer; }\
+        .BPconfignub:hover { opacity: 1; cursor: pointer; }\
+        .BPconfigpage>span { margin-left: 5px; margin-right: 5px; }");
+        var $nub = $js.el("div", {class: "BPconfignub", innerHTML: "{+}"});
+        var $box = $js.el("div", {class: "BPconfig"});
+        $nub.addEventListener("click", function () {
+            if (getComputedStyle($box).display == "none") {$box.style['display'] = "block";}
+            else {$box.style['display'] = "none";}
+        });
+        var $head = $js.el("div", {class: "BPconfighead"});
+        var $exit = $js.el("span", {class: "BPconfigclose", innerHTML: "{x}"});
+        $exit.addEventListener("click", function() {
+            $box.style['display'] = "none";
+        });
+        $head.appendChild($exit);
+        $box.appendChild($head);
+        document.body.appendChild($nub);
+        document.body.appendChild($box);
+        this.$box = $box;
+        this.$head = $head;
     },
+    createPage: function(page) {
+        var $conf = $js("BPconfig");
+        var $tab = $js.el("span", {class: "BPconfigtab", innerHTML: page});
+        var $page = $js.el("div", {class: "BPconfigpage"});
+        
+        if (Object.keys(this.pages).length == 0) {
+            $page.style.display="block";
+            $js.addClass($tab, "BPconfigtabsel");
+            this.current = $page;
+        }
+        this.pages[page] = $page;
+        this.$box.appendChild($page);
+        this.$head.appendChild($tab);
+        return $page;
+    },
+    main: function() { // creates main settings page
+        var $main = this.createPage("Main");
+        var $span = $js.el("span");
+        var $box = $js.el("input", {id:"BPhttps", type:"checkbox", checked: this.settings.https});
+        var $lbl = $js.el("label", {innerHTML: "Use HTTPS"});
+        $lbl.setAttribute("for", "BPhttps");
+        $box.onclick = function () {config.settings.https = this.checked; config.save();}
+        $span.appendChild($box); $span.appendChild($lbl); $main.appendChild($span);
+
+        var $span = $js.el("span");
+        var $box = $js.el("input", {id:"BPajaxfix", type:"checkbox", checked: this.settings.ajaxfix});
+        var $lbl = $js.el("label", {innerHTML: "Use AJAX fix for new firefox"});
+        $lbl.setAttribute("for", "BPajaxfix");
+        $box.onclick = function () {config.settings.ajaxfix = this.checked; config.save();}
+        $span.appendChild($box); $span.appendChild($lbl); $main.appendChild($span);
+    },
+    save: function() {
+        window.localStorage["BPconfig"] = JSON.stringify(this.settings);
+    }
 };
 
 config.init();
 
-if (config.https == false) {
+if (config.settings.https == false) {
     removeHTTPS();
 }
 
