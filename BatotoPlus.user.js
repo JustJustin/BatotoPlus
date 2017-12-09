@@ -682,12 +682,13 @@ function mangaListing($el) {
     req._this = this;
     req.el = $el;
     req.responseType = "document";
-    req.onsuccess = function(dom) {
+    req.onload = function(dom) {
         var $dom = this.response;
         var info = parseMangaPage($dom, this.responseURL);
         saveMangaInfo(info.id, info);
         this._this.build(info, this.el);
     };
+    req.send();
 }
 mangaListing.mo = true;
 
