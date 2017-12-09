@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.5.2
+// @version        1.5.3
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -154,7 +154,23 @@ function next(){
 }
 function prev(){
     // TODO make smart
-	window.history.back();
+    if ($js(".moderation_bar ul img[title=\"Previous Page\"]")) {
+        window.location = $js(".moderation_bar ul img[title=\"Previous Page\"]").parentNode.href;
+    } else if ($js(".moderation_bar ul img[title=\"Previous Chapter\"]")) {
+        window.location = $js(".moderation_bar ul img[title=\"Previous Chapter\"]").parentNode.href;
+    } else {
+	    window.history.back();
+    }
+}
+function next_chapter() {
+    if ($js(".moderation_bar ul img[title=\"Next Chapter\"]")) {
+        window.location = $js(".moderation_bar ul img[title=\"Next Chapter\"]").parentNode.href;
+    }
+}
+function prev_chapter() {
+    if ($js(".moderation_bar ul img[title=\"Previous Chapter\"]")) {
+        window.location = $js(".moderation_bar ul img[title=\"Previous Chapter\"]").parentNode.href;
+    }
 }
 
 /* Manga Cache
@@ -542,6 +558,12 @@ var myKeyHandler = function(e){
 		case keycode.d:
 			next();
 			break;
+        case keycode.q:
+            prev_chapter();
+            break;
+        case keycode.e:
+            next_chapter();
+            break
 		case keycode.w:
         case keycode.up:
 			if (scrollInterval === null) {
@@ -814,7 +836,7 @@ function getSuggestedDownload($div, $img, title) {
     
     // Create a data blob of these images
     var req = new XMLHttpRequest();
-    var imgsrc = (config.settings.ajaxfix ? $img.src : "//cors-anywhere.herokuapp.com/" + img.src);
+    var imgsrc = (config.settings.ajaxfix ? $img.src : "//cors-anywhere.herokuapp.com/" + $img.src);
     req.open("GET", imgsrc);
     $js.extend(req, {title: title, span: $span, 
                      type: $img.src.split(".").pop()});
