@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.5.3
+// @version        1.5.4
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -643,17 +643,6 @@ function getch(name) {
     else {return null;}
 }
 
-$js.addStyle(".mangalistingmo { \
-    display: none; \
-    position: absolute; \
-    max-width: 600px; \
-    background: white; \
-    border: 1px solid grey; \
-    padding: 5px; \
-    overflow: auto; \
-    margin-top: 15px; \
-    margin-left: 300px;\
-}");
 function mangaListing($el) {
     this.build = function(info, $el) {
         var $div = $js.el("div", {class: "mangalistingmo"});
@@ -689,6 +678,32 @@ function mangaListing($el) {
         this._this.build(info, this.el);
     };
 }
+mangaListing.init = function(frontpage=false) {
+    if (frontpage) {
+        return $js.addStyle(".mangalistingmo { \
+            display: none; \
+            position: absolute; \
+            max-width: 600px; \
+            background: white; \
+            border: 1px solid grey; \
+            padding: 5px; \
+            overflow: auto; \
+            margin-top: -200px; \
+            margin-left: -660px;\
+        }");
+    }
+    $js.addStyle(".mangalistingmo { \
+        display: none; \
+        position: absolute; \
+        max-width: 600px; \
+        background: white; \
+        border: 1px solid grey; \
+        padding: 5px; \
+        overflow: auto; \
+        margin-top: 15px; \
+        margin-left: 300px;\
+    }");
+};
 mangaListing.mo = true;
 
 function allMyFollows() {
@@ -979,7 +994,7 @@ var removeHTTPS = function() {
 };
 
 var config = {
-    settings: {https: false, ajaxfix: false},
+    settings: {https: false, ajaxfix: false, mangamo_front: true},
     current: null,
     pages: {},
     init: function() {
@@ -1073,6 +1088,15 @@ var config = {
         $lbl.setAttribute("for", "BPajaxfix");
         $box.onclick = function () {config.settings.ajaxfix = this.checked; config.save();}
         $span.appendChild($box); $span.appendChild($lbl); $main.appendChild($span);
+
+        var $span = $js.el("span");
+        var $box = $js.el("input", {id:"BPmangamofront", type:"checkbox", checked: this.settings.mangamo_front});
+        var $lbl = $js.el("label", {innerHTML: "Front page mouseover shows manga info."});
+        $lbl.setAttribute("for", "MPmangamofront");
+        $box.onclick = function () {config.settings.mangamo_front = this.checked; 
+                                    mangaListing.mo = this.checked; config.save();}
+        $span.appendChild($box); $span.appendChild($lbl); $main.appendChild($span);
+
     },
     save: function() {
         window.localStorage["BPconfig"] = JSON.stringify(this.settings);
@@ -1106,6 +1130,7 @@ if (/\/reader/.exec(window.location.pathname)) {
             markchstatus();
         };
         var $lis = $$js("table.chapters_list tr:not(.header)>td:nth-child(2)");
+        mangaListing.init();
         for (var i = 0; i < $lis.length; ++i) {
             mangaListing($lis[i]);
         }
@@ -1130,17 +1155,27 @@ if (/\/reader/.exec(window.location.pathname)) {
         mangaPage();
     }
 
-    if ($js("#hook_watched_items")) {
-        marksidebarchstatus();
-        document.addEventListener("visibilitychange", function () {
-            if (!document.hidden) {
-                readDB.checkForUpdate();
-                marksidebarchstatus();
-            }
-        });
-        readDB.onUpdate = function () {
+    // front page
+    if (window.location.pathname == "/") {
+        if ($js("#hook_watched_items")) {
             marksidebarchstatus();
-        };
+            document.addEventListener("visibilitychange", function () {
+                if (!document.hidden) {
+                    readDB.checkForUpdate();
+                    marksidebarchstatus();
+                }
+            });
+            readDB.onUpdate = function () {
+                marksidebarchstatus();
+            };
+
+            var $mangas = $$js("li.hentry", $js("#hook_watched_items"));
+            mangaListing.init(true);
+            mangaListing.mo = config.settings.mangamo_front;
+            for (var i = 0; i < $mangas.length; ++i) {            
+                mangaListing($mangas[i]);
+            }
+        }
     }
     
     // Not read page, front page?
