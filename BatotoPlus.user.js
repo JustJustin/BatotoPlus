@@ -1,7 +1,7 @@
 // ==UserScript==
 // @id             JustJustin.BatotoPlus
 // @name           Batoto Plus
-// @version        1.5.4
+// @version        1.6.0
 // @namespace      JustJustin
 // @author         JustJustin
 // @description    Adds new features to Batoto
@@ -454,6 +454,10 @@ function gethash (url) {
     }
     return url.substr(url.lastIndexOf("#"));
 }
+function getcleanhash(url) {
+    var hash = gethash(url);
+    return readDB.cleanHash(hash);
+}
 
 if (unsafeWindow) {
     unsafeWindow.BP = {};
@@ -572,6 +576,7 @@ var myKeyHandler = function(e){
 					window.scrollBy(0, -35);
 				}, 30);
 			}
+            e.preventDefault();
 			break;
 		case keycode.s:
         case keycode.down:
@@ -581,6 +586,7 @@ var myKeyHandler = function(e){
 					window.scrollBy(0, 35);
 				}, 30);
 			}
+            e.preventDefault();
 			break;
 	}
 	return;
@@ -843,6 +849,35 @@ function mangaPage() {
             readDB.set(hash);
         });
     }
+    var chdata = {};
+    for (var i = 0; i < chs.length; ++i) {
+        var ch = chs[i];
+        var a = $js("td>a", ch);
+        if (!a) {continue;}
+        var hash = getcleanhash(a.href);
+        if (readDB.status(hash)) {
+            var title = a.innerText.trim();
+            chdata[hash] = title;
+        }
+    }
+    console.log(chdata);
+    if (config.settings.minfo_update) {
+        var params = "db=" + "batotoMangaInfo" +
+                     "&pass=" + readDB.webConfig.pass + 
+                     "&action=set" + "&id=" + mangaID +
+                     "&data=" + JSON.stringify(mangaInfo) +
+                     "&chapters=" + JSON.stringify(chdata);
+        var req = new XMLHttpRequest();
+        req.open("POST", "http://game.kiri.moe/manga/index.php");
+        req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        req.send(params);
+        req.onload = function (e) {
+            console.log({msg: "MangaInfoRemote updated", response: this.response});
+        };
+        req.onerror = function (e) {
+            console.log({msg: "Error updating MangaInfoRemote", request: this});
+        };
+    }
 }
 
 function getSuggestedDownload($div, $img, title) {
@@ -995,7 +1030,7 @@ var removeHTTPS = function() {
 };
 
 var config = {
-    settings: {https: false, ajaxfix: false, mangamo_front: true},
+    settings: {https: false, ajaxfix: false, mangamo_front: true, minfo_update: true},
     current: null,
     pages: {},
     init: function() {
@@ -1093,11 +1128,18 @@ var config = {
         var $span = $js.el("span");
         var $box = $js.el("input", {id:"BPmangamofront", type:"checkbox", checked: this.settings.mangamo_front});
         var $lbl = $js.el("label", {innerHTML: "Front page mouseover shows manga info."});
-        $lbl.setAttribute("for", "MPmangamofront");
+        $lbl.setAttribute("for", "BPmangamofront");
         $box.onclick = function () {config.settings.mangamo_front = this.checked; 
                                     mangaListing.mo = this.checked; config.save();}
         $span.appendChild($box); $span.appendChild($lbl); $main.appendChild($span);
-
+        
+        $main.appendChild($js.el("br"));
+        var $span = $js.el("span");
+        var $box = $js.el("input", {id:"BPminfo_update", type:"checkbox", checked: this.settings.minfo_update});
+        var $lbl = $js.el("label", {innerHTML: "Update Manga Info on remotehost."});
+        $lbl.setAttribute("for", "BPminfo_update");
+        $box.onclick = function () {config.settings.minfo_update = this.checked; config.save();}
+        $span.appendChild($box); $span.appendChild($lbl); $main.appendChild($span);
     },
     save: function() {
         window.localStorage["BPconfig"] = JSON.stringify(this.settings);
